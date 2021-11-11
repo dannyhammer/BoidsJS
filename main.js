@@ -4,6 +4,22 @@ const ALIGNMENT_STRENGTH = 0.05;
 const FOCUS_STRENGTH = 0.0005;
 const JITTER_STRENGTH = 0.5;
 
+const COLORS = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [255, 255, 0],
+    [0, 255, 255],
+    [255, 0, 255],
+    [255, 128, 0],
+    [0, 255, 128],
+    [128, 0, 255],
+    [0, 128, 255],
+    [128, 0, 255],
+    [128, 255, 0],
+    [255, 0, 128],
+]
+
 let RGB = function () { return Math.floor(Math.random() * 256); };
 let randRange = function(min, max) { return Math.round(Math.random() * (max - min)) + min };
 //let normalize = function(val, min, max) { return (val - min) / (max - min); };
@@ -11,72 +27,79 @@ let randRange = function(min, max) { return Math.round(Math.random() * (max - mi
 
 class Boid {
     constructor(id, x, y) {
+        // Unique ID of the boid
         this.id = id;
-        // TODO: Convert to { x: num, y: num }
-        this.pos = [x, y];
+        this.pos = {x: x, y: y};
         this.length = 30;
         this.width = this.length / 3;
         this.fov = this.length * 3;
+        this.cluster = 0;
         this.minSpeed = 2;
         this.maxSpeed = 4;
-        this.vel = [0, 0];
+        this.vel = {x: 0, y: 0};
         this.angle = 0.0;
         this.jitterChance = 0.01;
-        this.color = [RGB(), RGB(), RGB(), 0.5];
         this.steeringStrength = 0.5;
+        this.transparency = 0.5;
+        //this.color = [RGB(), RGB(), RGB(), 0.5];
+        this.color = [250, 250, 250];
     }
 
     render(ctx) {
         // Align the canvas with the Boid
-        ctx.translate(this.pos[0], this.pos[1]);
+        ctx.translate(this.pos.x, this.pos.y);
         ctx.rotate(this.angle);
-        ctx.translate(-this.pos[0], -this.pos[1]);
+        ctx.translate(-this.pos.x, -this.pos.y);
 
         // Begin drawing the Boid (shape + outline)
         ctx.beginPath();
-        ctx.moveTo(this.pos[0], this.pos[1]);
-        ctx.lineTo(this.pos[0] - this.length, this.pos[1] - this.width);
-        ctx.lineTo(this.pos[0] - this.length, this.pos[1] + this.width);
-        ctx.lineTo(this.pos[0], this.pos[1]);
+        ctx.moveTo(this.pos.x, this.pos.y);
+        ctx.lineTo(this.pos.x - this.length, this.pos.y - this.width);
+        ctx.lineTo(this.pos.x - this.length, this.pos.y + this.width);
+        ctx.lineTo(this.pos.x, this.pos.y);
         ctx.stroke(); // Draw the black outline
-        ctx.fillStyle = "rgb(" + this.color + ")"; // Set the fill color
+        ctx.fillStyle = "rgba(" + this.color + ", " + this.transparency + ")"; // Set the fill color
 
         // Cast a shadow
         ctx.shadowOffsetX = this.length / 5;
         ctx.shadowOffsetY = this.length / 5;
-        ctx.shadowBlur = 5 / this.color[3];
+        ctx.shadowBlur = 5 / this.transparency;
         ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
 
         // Render the boid
         ctx.fill();
 
-
         // Display the Boid's ID
         ctx.font = (this.length / 4) + "px mono";
-        ctx.translate(this.pos[0], this.pos[1]);
+        ctx.translate(this.pos.x, this.pos.y);
         ctx.rotate(1.57079); // Rotate 90 degrees
-        ctx.translate(-this.pos[0], -this.pos[1]);
+        ctx.translate(-this.pos.x, -this.pos.y);
         ctx.fillStyle = "rgba(0, 0, 0, 1)";
         ctx.textAlign = "center";
-        ctx.fillText(this.id, this.pos[0], this.pos[1] + this.length - this.width / 2);
-        //let pos = "(" + [Math.round(this.pos[0]), Math.round(this.pos[1])] + ")";
-        //ctx.fillText(pos, this.pos[0], this.pos[1] + this.length);
+        ctx.fillText(this.id, this.pos.x, this.pos.y + this.length - this.width / 2);
+        //let pos = "(" + [Math.round(this.pos.x), Math.round(this.pos.y)] + ")";
+        //ctx.fillText(pos, this.pos.x, this.pos.y + this.length);
 
-        //let vel = "(" + [Math.round(this.vel[0]), Math.round(this.vel[1])] + ")";
-        //ctx.fillText(vel, this.pos[0], this.pos[1] + this.length);
+        //let vel = "(" + [Math.round(this.vel.x), Math.round(this.vel.y)] + ")";
+        //ctx.fillText(vel, this.pos.x, this.pos.y + this.length);
 
         // Resets the canvas' transform
         ctx.resetTransform();
     }
 
-    update() {
+    update(env) {
         this.limitSpeed();
         this.avoidWalls();
 
+        // Update the Boid's color based on its cluster
+        this.color = this.cluster > 0 ? COLORS[this.cluster] : [250, 250, 250];
+
         // Update position from velocity
-        this.pos = mod(add(this.pos, this.vel), [env.width, env.height]); // Keep within bounds
+        this.pos = mod(add(this.pos, this.vel), {x: env.width, y: env.height}); // Keep within bounds
         //this.pos = add(this.pos, this.vel); // Allow leaving bounds
-        this.angle = Math.atan2(this.vel[1], this.vel[0]);
+
+        // Determine the Boid's angle based on its velocity
+        this.angle = Math.atan2(this.vel.y, this.vel.x);
     }
 
     tooClose(other) {
@@ -88,7 +111,7 @@ class Boid {
     }
 
     limitSpeed() {
-        let speed = Math.sqrt(this.vel[0]**2 + this.vel[1]**2);
+        let speed = Math.sqrt(this.vel.x**2 + this.vel.y**2);
 
         if (speed > this.maxSpeed) {
             this.vel = mult(div(this.vel, speed), this.minSpeed);
@@ -100,17 +123,17 @@ class Boid {
     avoidWalls() {
         let margin = this.length * 2;
 
-        if (this.pos[0] < margin) {
-            this.vel = add(this.vel, [this.steeringStrength, 0]);
+        if (this.pos.x < margin) {
+            this.vel = add(this.vel, {x: this.steeringStrength, y: 0});
         }
-        if (this.pos[0] > env.width - margin) {
-            this.vel = sub(this.vel, [this.steeringStrength, 0]);
+        if (this.pos.x > env.width - margin) {
+            this.vel = sub(this.vel, {x: this.steeringStrength, y: 0});
         }
-        if (this.pos[1] < margin) {
-            this.vel = add(this.vel, [0, this.steeringStrength]);
+        if (this.pos.y < margin) {
+            this.vel = add(this.vel, {x: 0, y: this.steeringStrength});
         }
-        if (this.pos[1] > env.height - margin) {
-            this.vel = sub(this.vel, [0, this.steeringStrength]);
+        if (this.pos.y > env.height - margin) {
+            this.vel = sub(this.vel, {x: 0, y: this.steeringStrength});
         }
     }
 }
@@ -127,6 +150,8 @@ class Environment {
         this.height = 2160;
         this.focalPoint = null;
         this.animationFrame = null;
+        this.clusters = [];
+        this.clusterMap = [];
 
         if (this.size > this.max) {
             console.log("Maximum number of boids reached (" + this.max + ")");
@@ -149,12 +174,12 @@ class Environment {
     }
 
     calculateBoidVelocity(boid) {
-        let vel = [0, 0];
-        let separation = [0, 0];
-        let cohesion = [0, 0];
-        let alignment = [0, 0];
-        let focus = [0, 0];
-        let jitter = [0, 0];
+        let vel = {x: 0, y: 0};
+        let separation = {x: 0, y: 0};
+        let cohesion = {x: 0, y: 0};
+        let alignment = {x: 0, y: 0};
+        let focus = {x: 0, y: 0};
+        let jitter = {x: 0, y: 0};
 
         let numVisible = 0;
         let numTooClose = 0;
@@ -190,8 +215,8 @@ class Environment {
         }
 
         if (Math.random() < boid.jitterChance) {
-            jitter[0] = randRange(-boid.vel[1], boid.vel[1]);
-            jitter[1] = randRange(-boid.vel[0], boid.vel[0]);
+            jitter.x = randRange(-boid.vel.y, boid.vel.y);
+            jitter.y = randRange(-boid.vel.x, boid.vel.x);
         }
 
         vel = add(vel, mult(separation, SEPARATION_STRENGTH));
@@ -213,62 +238,83 @@ function resizeCanvas() {
 }
 
 function distance(a, b) {
-    return Math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2);
+    return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
 
 function add(a, b) {
     if (typeof b == "number") {
-        return [a[0] + b, a[1] + b];
+        return {x: a.x + b, y: a.y + b};
     } else if (typeof a == typeof b && typeof a == "object") {
-        return [a[0] + b[0], a[1] + b[1]];
+        return {x: a.x + b.x, y: a.y + b.y};
     }
 }
 
 function sub(a, b) {
     if (typeof b == "number") {
-        return [a[0] - b, a[1] - b];
+        return {x: a.x - b, y: a.y - b};
     } else if (typeof a == typeof b && typeof a == "object") {
-        return [a[0] - b[0], a[1] - b[1]];
+        return {x: a.x - b.x, y: a.y - b.y};
     }
 }
 
 function mult(a, b) {
     if (typeof b == "number") {
-        return [a[0] * b, a[1] * b];
+        return {x: a.x * b, y: a.y * b};
     } else if (typeof a == typeof b && typeof a == "object") {
-        return [a[0] * b[0], a[1] * b[1]];
+        return {x: a.x * b.x, y: a.y * b.y};
     }
 }
 
 function div(a, b) {
     if (typeof b == "number") {
-        return [a[0] / b, a[1] / b];
+        return {x: a.x / b, y: a.y / b};
     } else if (typeof a == typeof b && typeof a == "object") {
-        return [a[0] / b[0], a[1] / b[1]];
+        return {x: a.x / b.x, y: a.y / b.y};
     }
 }
 
 function mod(a, b) {
     if (typeof b == "number") {
-        return [a[0] % b, a[1] % b];
+        return {x: a.x % b, y: a.y % b};
     } else if (typeof a == typeof b && typeof a == "object") {
-        return [a[0] % b[0], a[1] % b[1]];
+        return {x: a.x % b.x, y: a.y % b.y};
     }
 }
 
 function main(env) {
+    // Fetch canvas information
     env.canvas = document.getElementById("cnvs");
     env.ctx = env.canvas.getContext("2d");
 
+    // Create a Density-Based Scanner for clustering
+    let dbscanner = jDBSCAN().eps(env.boids[0].fov).minPts(2);
+
     let cycle = function() {
-        // Render Code
+        // Clear the screen
         env.ctx.clearRect(0, 0, env.width, env.height);
+
+        // Get the positions of every boid in the environment
+        let pointData = env.boids.map(function (boid) { return boid.pos });
+
+        // Assign a cluster ID to every boid ID
+        env.clusterMap = dbscanner.data(pointData)();
+
+        env.clusters = [];
 
         for (let boid of env.boids) {
             let newVel = env.calculateBoidVelocity(boid);
 
             boid.vel = add(boid.vel, newVel);
-            boid.update();
+            boid.cluster = env.clusterMap[boid.id];
+
+            /*
+            if (env.clusters[boid.cluster] == null) {
+                env.clusters[boid.cluster] = [];
+            }
+            env.clusters[boid.cluster].push(boid)
+            */
+
+            boid.update(env);
             boid.render(env.ctx);
         }
         env.animationFrame = window.requestAnimationFrame(cycle);
@@ -277,17 +323,20 @@ function main(env) {
     env.canvas.addEventListener('mouseover', function(e) {
         if (env.animationFrame == null) {
             env.animationFrame = window.requestAnimationFrame(cycle);
-        } 
+        } else {
+        }
     });
 
     env.canvas.addEventListener('mouseout', function(e) {
-        //window.cancelAnimationFrame(animationFrame);
-        env.animationFrame = null;
+        // Uncomment this line to pause simulation when not in focus
+        //window.cancelAnimationFrame(env.animationFrame);
+        // Remove the focal point
         env.focalPoint = null;
     });
 
     env.canvas.addEventListener("mousemove", function(e) {
-        env.focalPoint = [e.x, e.y];
+        // Set the focal point to the mouse's position
+        env.focalPoint = { x: e.x, y: e.y};
     });
 
     env.canvas.addEventListener("mousedown", function(e) {
@@ -300,7 +349,6 @@ var env = new Environment(50);
 window.onload = function() {
     window.addEventListener("resize", resizeCanvas, false);
     resizeCanvas();
-
 
     main(env);
 }
