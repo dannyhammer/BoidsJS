@@ -36,7 +36,7 @@ class Boid {
         this.cluster = 0;
         this.minSpeed = 2;
         this.maxSpeed = 4;
-        this.vel = {x: 0, y: 0};
+        this.vel = {x: Math.random() - 1, y: Math.random() - 1};
         this.angle = 0.0;
         this.jitterChance = 0.01;
         this.steeringStrength = 0.5;
@@ -87,12 +87,12 @@ class Boid {
         ctx.resetTransform();
     }
 
-    update(env) {
+    update() {
         this.limitSpeed();
         this.avoidWalls();
 
-        // Update the Boid's color based on its cluster
-        this.color = this.cluster > 0 ? COLORS[this.cluster] : [250, 250, 250];
+        // Update the Boid's color based on its cluster. Unclustered boids are white
+        this.color = this.cluster > 0 ? COLORS[this.cluster - 1] : [250, 250, 250];
 
         // Update position from velocity
         this.pos = mod(add(this.pos, this.vel), {x: env.width, y: env.height}); // Keep within bounds
@@ -151,7 +151,6 @@ class Environment {
         this.focalPoint = null;
         this.animationFrame = null;
         this.clusters = [];
-        this.clusterMap = [];
 
         if (this.size > this.max) {
             console.log("Maximum number of boids reached (" + this.max + ")");
@@ -184,7 +183,8 @@ class Environment {
         let numVisible = 0;
         let numTooClose = 0;
 
-        for (let other of this.boids) {
+        // Iterate over every other boid in the same cluster
+        for (let other of this.clusters[boid.cluster]) {
             if (boid !== other) {
                 if (boid.tooClose(other)) {
                     separation = add(separation, sub(boid.pos, other.pos));
@@ -205,25 +205,30 @@ class Environment {
         if (numVisible > 0) {
             cohesion = div(cohesion, numVisible);
             alignment = div(alignment, numVisible);
+
+            // Only subtract if at least one neighbor was found
+            cohesion = sub(cohesion, boid.pos);
+            alignment = sub(alignment, boid.vel);
         }
 
-        cohesion = sub(cohesion, boid.pos);
-        alignment = sub(alignment, boid.vel);
 
         if (this.focalPoint != null) {
             focus = sub(this.focalPoint, boid.pos);
         }
 
+        /*
         if (Math.random() < boid.jitterChance) {
             jitter.x = randRange(-boid.vel.y, boid.vel.y);
             jitter.y = randRange(-boid.vel.x, boid.vel.x);
         }
+        */
 
         vel = add(vel, mult(separation, SEPARATION_STRENGTH));
         vel = add(vel, mult(cohesion, COHESION_STRENGTH));
         vel = add(vel, mult(alignment, ALIGNMENT_STRENGTH));
         vel = add(vel, mult(focus, FOCUS_STRENGTH));
-        vel = add(vel, mult(jitter, JITTER_STRENGTH));
+        //vel = add(vel, mult(jitter, JITTER_STRENGTH));
+
 
         return vel;
     }
@@ -287,7 +292,7 @@ function main(env) {
     env.ctx = env.canvas.getContext("2d");
 
     // Create a Density-Based Scanner for clustering
-    let dbscanner = jDBSCAN().eps(env.boids[0].fov).minPts(2);
+    let dbscanner = jDBSCAN().eps(env.boids[0].length * 2).minPts(1);
 
     let cycle = function() {
         // Clear the screen
@@ -296,25 +301,25 @@ function main(env) {
         // Get the positions of every boid in the environment
         let pointData = env.boids.map(function (boid) { return boid.pos });
 
-        // Assign a cluster ID to every boid ID
-        env.clusterMap = dbscanner.data(pointData)();
+        // Assign every boid a cluster ID (clusterMap[boid.id] = clusterId)
+        let clusterMap = dbscanner.data(pointData)();
+        clusterMap.forEach(function(clusterId, boidId) { env.boids[boidId].cluster = clusterId });
 
+        // Reset the clusters; It's a new iteration, so boids may change clusters
         env.clusters = [];
 
         for (let boid of env.boids) {
-            let newVel = env.calculateBoidVelocity(boid);
-
-            boid.vel = add(boid.vel, newVel);
-            boid.cluster = env.clusterMap[boid.id];
-
-            /*
+            // Create clusters
             if (env.clusters[boid.cluster] == null) {
                 env.clusters[boid.cluster] = [];
             }
             env.clusters[boid.cluster].push(boid)
-            */
 
-            boid.update(env);
+            let newVel = env.calculateBoidVelocity(boid);
+
+            boid.vel = add(boid.vel, newVel);
+
+            boid.update();
             boid.render(env.ctx);
         }
         env.animationFrame = window.requestAnimationFrame(cycle);
@@ -336,7 +341,7 @@ function main(env) {
 
     env.canvas.addEventListener("mousemove", function(e) {
         // Set the focal point to the mouse's position
-        env.focalPoint = { x: e.x, y: e.y};
+        //env.focalPoint = { x: e.x, y: e.y};
     });
 
     env.canvas.addEventListener("mousedown", function(e) {
