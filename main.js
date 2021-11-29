@@ -1,8 +1,8 @@
 const JITTER_STRENGTH =     0.5;
-const ALIGNMENT_STRENGTH =  0.05;
-const SEPARATION_STRENGTH = 0.005;
-const COHESION_STRENGTH =   0.0005;
-const FOCUS_STRENGTH =      0.0005;
+const ALIGNMENT_STRENGTH =  0.1;
+const SEPARATION_STRENGTH = 0.01;
+const COHESION_STRENGTH =   0.001;
+const FOCUS_STRENGTH =      0.001;
 
 const COLORS = [
     [255, 0, 0],
@@ -170,14 +170,12 @@ class Boid {
         // If the position is too close to the margin, steer away
         if (this.pos.x < margin) {
             this.vel = add(this.vel, {x: this.steeringStrength, y: 0});
-        }
-        if (this.pos.x > env.width - margin) {
+        } else if (this.pos.x > env.width - margin) {
             this.vel = sub(this.vel, {x: this.steeringStrength, y: 0});
         }
         if (this.pos.y < margin) {
             this.vel = add(this.vel, {x: 0, y: this.steeringStrength});
-        }
-        if (this.pos.y > env.height - margin) {
+        } else if (this.pos.y > env.height - margin) {
             this.vel = sub(this.vel, {x: 0, y: this.steeringStrength});
         }
     }
@@ -268,15 +266,17 @@ class Environment {
 
         // Attract/repel from focal point
         if (this.focalPoint != null) {
-            focus = sub(this.focalPoint, boid.pos); // Attract boids
-            //focus = sub(boid.pos, this.focalPoint); // Repel boids
+            //focus = sub(this.focalPoint, boid.pos); // Attract boids
+            focus = sub(boid.pos, this.focalPoint); // Repel boids
         }
 
         // Check jitter chance
+        /*
         if (Math.random() < boid.jitterChance) {
             jitter.x = randRange(-boid.vel.y, boid.vel.y);
             jitter.y = randRange(-boid.vel.x, boid.vel.x);
         }
+        */
 
         // Add all of the factors together
         vel = add(vel, mult(separation, SEPARATION_STRENGTH));
@@ -293,8 +293,8 @@ function resizeCanvas() {
     env.canvas = document.getElementById("cnvs");
     
     // Set the dimensions of the window
-    env.width = env.canvas.width = window.innerWidth;
-    env.height = env.canvas.height = window.innerHeight;
+    env.width = env.canvas.width = window.innerWidth - 25;
+    env.height = env.canvas.height = window.innerHeight - 30;
 }
 
 function distance(a, b) {
@@ -407,7 +407,7 @@ function main(env) {
 }
 
 // Global environment variable to hold configuration info
-var env = new Environment(100);
+var env = new Environment(70);
 
 window.onload = function() {
     window.addEventListener("resize", resizeCanvas, false);
