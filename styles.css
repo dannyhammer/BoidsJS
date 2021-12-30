@@ -1,3 +1,7 @@
+body {
+    background-color: #006699;
+}
+
 canvas {
     border: 5px solid black;
     background-color: #CCE6FF;
@@ -11,9 +15,10 @@ canvas {
     z-index: 1;
     top: 0;
     left: 0;
-    background-color: #AAAAAA;
+    background-color: #33BBFF;
     overflow-x: hidden;
     padding-top: 20px;
+    text-align: center;
 }
 
 .inputItem {
@@ -21,18 +26,10 @@ canvas {
     border: 1px solid black;
     padding-left: 5px;
     margin-bottom: 10px;
-    background-color: #CCCCCC;
+    background-color: #00D5FF;
 }
 
 .slider {
     width: 97%; /* Fit nicely inside the slider bar box */
     height: 25px; 
-}
-
-#sepSlider {
-
-}
-
-.selection {
-
 }

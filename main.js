@@ -21,20 +21,9 @@ const COLORS = [
 
 //let RGB = function () { return Math.floor(Math.random() * 256); };
 let randRange = function(min, max) { return Math.round(Math.random() * (max - min)) + min };
-let normalize = function(val, min, max) { return (val - min) / (max - min); };
+//let normalize = function(val, max, min) { return (val - min) / (max - min); };
+//let normalize = function(val, max, min) { return min + (max - min) * val; };
 
-var config = {
-    jitter_strength: 0.5,
-    alignment_strength: 0.1,
-    separation_strength: 0.01,
-    cohesion_strength: 0.001,
-    focus_strength: 0.001,
-    boid_length: 18,
-    boid_width: 6,
-    shape: "triangle",
-    minSpeed: 2,
-    maxSpeed: 4,
-}
 
 
 class Boid {
@@ -54,11 +43,11 @@ class Boid {
     }
 
     render(ctx) {
-        switch (config.shape) {
+        switch (env.shape) {
             case "circle":
                 // Outer circle
                 ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, config.boid_width, 0, TWOPI, true);
+                ctx.arc(this.pos.x, this.pos.y, env.boid_width, 0, TWOPI, true);
                 ctx.fillStyle = "rgba(" + this.color + ", 1)"; // Set the fill color
                 //ctx.fillStyle = "rgba(0, 0, 0, 1)"; // Set the fill color
                 ctx.stroke();
@@ -67,14 +56,14 @@ class Boid {
             case "eye":
                 // Outer circle
                 ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, config.boid_width, 0, TWOPI, true);
+                ctx.arc(this.pos.x, this.pos.y, env.boid_width, 0, TWOPI, true);
                 ctx.stroke(); // Draw the black outline
                 ctx.fillStyle = "rgba(" + this.color + ", " + this.transparency + ")"; // Set the fill color
                 ctx.fill();
 
                 // Inner circle
                 ctx.beginPath();
-                ctx.arc(this.vel.x*1.5 + this.pos.x, this.vel.y*1.5 + this.pos.y, config.boid_width / 2, 0, TWOPI, true);
+                ctx.arc(this.vel.x*1.5 + this.pos.x, this.vel.y*1.5 + this.pos.y, env.boid_width / 2, 0, TWOPI, true);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
                 ctx.stroke();
                 ctx.fill(); // Draw the black outline
@@ -93,8 +82,8 @@ class Boid {
                 // Begin drawing the Boid (shape + outline)
                 ctx.beginPath();
                 ctx.moveTo(this.pos.x, this.pos.y);
-                ctx.lineTo(this.pos.x - config.boid_length, this.pos.y - config.boid_width);
-                ctx.lineTo(this.pos.x - config.boid_length, this.pos.y + config.boid_width);
+                ctx.lineTo(this.pos.x - env.boid_length, this.pos.y - env.boid_width);
+                ctx.lineTo(this.pos.x - env.boid_length, this.pos.y + env.boid_width);
                 ctx.lineTo(this.pos.x, this.pos.y);
                 ctx.stroke(); // Draw the black outline
                 ctx.fillStyle = "rgba(" + this.color + ", " + this.transparency + ")"; // Set the fill color
@@ -125,12 +114,12 @@ class Boid {
 
     tooClose(other) {
         // "Too close" is within a measure of one Boid's length
-        return distance(this.pos, other.pos) < config.boid_length;
+        return distance(this.pos, other.pos) < env.boid_length;
     }
 
     inSight(other) {
         // "In sight" is within the Boid's FOV
-        return distance(this.pos, other.pos) < config.boid_length * 3;;
+        return distance(this.pos, other.pos) < env.boid_length * 3;;
     }
 
     limitSpeed() {
@@ -138,16 +127,16 @@ class Boid {
         let speed = Math.sqrt(this.vel.x**2 + this.vel.y**2);
 
         // Clamp the speed between min and max
-        if (speed > config.maxSpeed) {
-            this.vel = mult(div(this.vel, speed), config.minSpeed);
-        } else if (speed < config.minSpeed) {
-            this.vel = mult(div(this.vel, speed), config.maxSpeed);
+        if (speed > env.maxSpeed) {
+            this.vel = mult(div(this.vel, speed), env.minSpeed);
+        } else if (speed < env.minSpeed) {
+            this.vel = mult(div(this.vel, speed), env.maxSpeed);
         }
     }
 
     avoidWalls() {
         // Avoid walls that are twice the Boid's length away
-        let margin = config.boid_length * 2;
+        let margin = env.boid_length * 2;
 
         // If the position is too close to the margin, steer away
         if (this.pos.x < margin) {
@@ -176,6 +165,18 @@ class Environment {
         this.canvas = null;
         this.focalPoint = null;
         this.animationFrame = null;
+
+        // This config info can be edited by the UI
+        this.jitter_strength = 0.5;
+        this.alignment_strength = 0.1;
+        this.separation_strength = 0.01;
+        this.cohesion_strength = 0.001;
+        this.focus_strength = 0.001;
+        this.boid_length = 18;
+        this.boid_width = 6;
+        this.shape = "triangle";
+        this.minSpeed = 2;
+        this.maxSpeed = 4;
 
         if (numBoids > this.max) {
             console.log("Maximum number of boids reached (" + this.max + ")");
@@ -261,11 +262,11 @@ class Environment {
         */
 
         // Add all of the factors together
-        vel = add(vel, mult(separation, config.separation_strength));
-        vel = add(vel, mult(cohesion, config.cohesion_strength));
-        vel = add(vel, mult(alignment, config.alignment_strength));
-        vel = add(vel, mult(focus, config.focus_strength));
-        vel = add(vel, mult(jitter, config.jitter_strength));
+        vel = add(vel, mult(separation, env.separation_strength));
+        vel = add(vel, mult(cohesion, env.cohesion_strength));
+        vel = add(vel, mult(alignment, env.alignment_strength));
+        vel = add(vel, mult(focus, env.focus_strength));
+        vel = add(vel, mult(jitter, env.jitter_strength));
 
         return vel;
     }
@@ -333,7 +334,7 @@ function main(env) {
     env.ctx = env.canvas.getContext("2d");
 
     // Create a Density-Based Scanner for clustering
-    let dbscanner = jDBSCAN().eps(config.boid_length * 2).minPts(1);
+    let dbscanner = jDBSCAN().eps(env.boid_length * 2).minPts(1);
 
     let cycle = function() {
         // Clear the screen
@@ -391,6 +392,16 @@ function main(env) {
     });
 
     
+    // TODO: Figure out how to normalize the values
+    // I want each slider to go from [0, 100] and start at 50
+    // But each slider needs to normalize between different ranges, like [0, 0.05]
+    /*
+    let dummySlider = document.getElementById("DUMMYSLIDER");
+    dummySlider.oninput = function() {
+        console.log(this.value, normalize(this.value, 1, 0.1));
+    }
+    */
+    
     let sepSlider = document.getElementById("sepSlider");
     let cohSlider = document.getElementById("cohSlider");
     let aliSlider = document.getElementById("aliSlider");
@@ -398,36 +409,36 @@ function main(env) {
     let speedSlider = document.getElementById("speedSlider");
 
     sepSlider.oninput = function() {
-        config.separation_strength = +this.value;
-        console.log("Separation: " + config.separation_strength);
+        env.separation_strength = +this.value;
+        console.log("Separation: " + env.separation_strength);
     }
 
     cohSlider.oninput = function() {
-        config.cohesion_strength = +this.value;
-        console.log("Cohesion: " + config.cohesion_strength);
+        env.cohesion_strength = +this.value;
+        console.log("Cohesion: " + env.cohesion_strength);
     }
 
     aliSlider.oninput = function() {
-        config.alignment_strength = +this.value;
-        console.log("Alignment: " + config.alignment_strength);
+        env.alignment_strength = +this.value;
+        console.log("Alignment: " + env.alignment_strength);
     }
 
     sizeSlider.oninput = function() {
-        config.boid_length = +this.value;
-        config.boid_width = this.value / 3;
-        dbscanner = jDBSCAN().eps(config.boid_length * 2).minPts(1);
+        env.boid_length = +this.value;
+        env.boid_width = this.value / 3;
+        dbscanner = jDBSCAN().eps(env.boid_length * 2).minPts(1);
     }
 
     speedSlider.oninput = function() {
-        config.minSpeed = this.value >> 1;
-        config.maxSpeed = +this.value;
+        env.minSpeed = this.value >> 1;
+        env.maxSpeed = +this.value;
     }
 
     document.getElementById("shadowCheck").oninput = function() {
         if (this.checked) {
             // Cast a shadow
-            env.ctx.shadowOffsetX = config.boid_length / 5;
-            env.ctx.shadowOffsetY = config.boid_length / 5;
+            env.ctx.shadowOffsetX = env.boid_length / 5;
+            env.ctx.shadowOffsetY = env.boid_length / 5;
             env.ctx.shadowBlur = 10;
             env.ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
         } else {
@@ -439,21 +450,21 @@ function main(env) {
     }
 
     document.getElementById("shapeSelect").oninput = function() {
-        config.shape = this.value;
+        env.shape = this.value;
     }
 
     document.getElementById("resetButton").onclick = function() {
-        aliSlider.value = config.alignment_strength = 0.1;
-        sepSlider.value = config.separation_strength = 0.01;
-        cohSlider.value = config.cohesion_strength = 0.001;
+        aliSlider.value = env.alignment_strength = 0.1;
+        sepSlider.value = env.separation_strength = 0.01;
+        cohSlider.value = env.cohesion_strength = 0.001;
 
-        config.boid_width = 6;
-        sizeSlider.value = config.boid_length = 18;
+        env.boid_width = 6;
+        sizeSlider.value = env.boid_length = 18;
 
-        config.minSpeed = 2;
-        speedSlider.value = config.maxSpeed = 4;
+        env.minSpeed = 2;
+        speedSlider.value = env.maxSpeed = 4;
 
-        dbscanner = jDBSCAN().eps(config.boid_length * 2).minPts(1);
+        dbscanner = jDBSCAN().eps(env.boid_length * 2).minPts(1);
     }
 }
 
