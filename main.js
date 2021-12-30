@@ -3,6 +3,9 @@ const ALIGNMENT_STRENGTH =  0.1;
 const SEPARATION_STRENGTH = 0.01;
 const COHESION_STRENGTH =   0.001;
 const FOCUS_STRENGTH =      0.001;
+const INITIAL_NUM = 200;
+const MAX_BOIDS = 350;
+const TWOPI = 2 * Math.PI;
 
 const COLORS = [
     [255, 0, 0],
@@ -30,7 +33,7 @@ class Boid {
         this.id = id;                                               // Unique ID
         this.pos = {x: x, y: y};                                    // Positional information
         this.vel = {x: Math.random() - 1, y: Math.random() - 1};    // Velocity x y components
-        this.length = 30;                                           // Length, used to compute size and sight info
+        this.length = 18;                                           // Length, used to compute size and sight info
         this.width = this.length / 3;                               // Only used in non-symmetric shapes
         this.fov = this.length * 3;                                 // How far the Boid can see
         this.cluster = 0;                                           // Which cluster the Boid belongs to
@@ -71,14 +74,22 @@ class Boid {
             case "circle":
                 // Outer circle
                 ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, this.width, 0, 2 * Math.PI, true);
+                ctx.arc(this.pos.x, this.pos.y, this.width, 0, TWOPI, true);
+                //ctx.fillStyle = "rgba(" + this.color + ", 1)"; // Set the fill color
+                ctx.fillStyle = "rgba(0, 0, 0, 1)"; // Set the fill color
+                ctx.fill();
+                break;
+            case "eye":
+                // Outer circle
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.width, 0, TWOPI, true);
                 ctx.stroke(); // Draw the black outline
                 ctx.fillStyle = "rgba(" + this.color + ", " + this.transparency + ")"; // Set the fill color
                 ctx.fill();
 
                 // Inner circle
                 ctx.beginPath();
-                ctx.arc(this.vel.x*1.5 + this.pos.x, this.vel.y*1.5 + this.pos.y, this.width / 2, 0, 2 * Math.PI, true);
+                ctx.arc(this.vel.x*1.5 + this.pos.x, this.vel.y*1.5 + this.pos.y, this.width / 2, 0, TWOPI, true);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
                 ctx.stroke();
                 ctx.fill(); // Draw the black outline
@@ -106,6 +117,7 @@ class Boid {
 
     renderText(ctx, shapeType) {
         // Display the Boid's ID
+        //ctx.font = (this.length / 4) + "px mono";
         ctx.font = (this.length / 4) + "px mono";
         ctx.translate(this.pos.x, this.pos.y);
         ctx.rotate(1.57079); // Rotate 90 degrees
@@ -187,7 +199,7 @@ class Environment {
         this.clusters = [];
         this.positions = [];
         this.size = 0;
-        this.max = 100;
+        this.max = MAX_BOIDS;
         this.width = 3840;
         this.height = 2160;
         this.ctx = null;
@@ -375,7 +387,8 @@ function main(env) {
             // Update position and render
             boid.update(env);
             //boid.render(env.ctx, shapeType="triangle", showShadow=true, showText=true);
-            //boid.render(env.ctx, shapeType="circle");
+            //boid.render(env.ctx, shapeType="eye", showShadow=false, showText=false);
+            //boid.render(env.ctx, shapeType="circle", showShadow=false, showText=false);
             boid.render(env.ctx);
         }
         env.animationFrame = window.requestAnimationFrame(cycle);
@@ -407,7 +420,7 @@ function main(env) {
 }
 
 // Global environment variable to hold configuration info
-var env = new Environment(70);
+var env = new Environment(INITIAL_NUM);
 
 window.onload = function() {
     window.addEventListener("resize", resizeCanvas, false);
