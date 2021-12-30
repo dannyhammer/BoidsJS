@@ -7,13 +7,56 @@
         <title>Boids</title>
         <script type="text/javascript" src="main.js"></script>
         <script type="text/javascript" src="jDBScan.js"></script>
-
-        <style type="text/css">
-            canvas { border: 5px solid black; }
-        </style>
+        <link rel="stylesheet" href="styles.css">  
     </head>
 
     <body>
-        <canvas id="cnvs" width="1280" height="720"></canvas>
+        <div id="sidemenu">
+            <div class="inputItem">
+                <label> Separation Strength </label>
+                <input type="range" min="0" max="0.05" value="0.01" step="0.0001" class="slider" id="sepSlider">
+            </div>
+
+            <div class="inputItem">
+                <label> Cohesion Strength </label>
+                <input type="range" min="0" max="0.01" value="0.001" step="0.0001" class="slider" id="cohSlider">
+            </div>
+
+            <div class="inputItem">
+                <label> Alignment Strength </label>
+                <input type="range" min="0" max="0.5" value="0.1" step="0.001" class="slider" id="aliSlider">
+            </div>
+
+            <div class="inputItem">
+                <label> Size </label>
+                <input type="range" min="5" max="100" value="18" step="1" class="slider" id="sizeSlider">
+            </div>
+
+            <div class="inputItem">
+                <label> Speed </label>
+                <input type="range" min="0.5" max="10" value="4" step="0.25" class="slider" id="speedSlider">
+            </div>
+
+            <div class="inputItem">
+                <label> Shadows </label>
+                <input class="check" type="checkbox" id="shadowCheck">
+            </div>
+
+
+            <div class="inputItem">
+                <label> Shape </label>
+                <select class="selection" id="shapeSelect">
+                    <option value="triangle" selected>Triangle</option>
+                    <option value="circle">Circle</option>
+                    <option value="eye">Eye</option>
+                </select>
+            </div>
+
+            <div class="inputItem">
+                <button type="reset" id="resetButton">Reset</button>
+            </div>
+        </div>
+
+        <canvas id="cnvs" width="1280" height="720">Browser does not support canvas element</canvas>
     </body>
 </html>

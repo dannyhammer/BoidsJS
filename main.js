@@ -1,11 +1,7 @@
-const JITTER_STRENGTH =     0.5;
-const ALIGNMENT_STRENGTH =  0.1;
-const SEPARATION_STRENGTH = 0.01;
-const COHESION_STRENGTH =   0.001;
-const FOCUS_STRENGTH =      0.001;
 const INITIAL_NUM = 200;
-const MAX_BOIDS = 350;
+const MAX_BOIDS = 500;
 const TWOPI = 2 * Math.PI;
+const SHAPES = ["circle", "eye", "triangle"];
 
 const COLORS = [
     [255, 0, 0],
@@ -25,7 +21,20 @@ const COLORS = [
 
 //let RGB = function () { return Math.floor(Math.random() * 256); };
 let randRange = function(min, max) { return Math.round(Math.random() * (max - min)) + min };
-//let normalize = function(val, min, max) { return (val - min) / (max - min); };
+let normalize = function(val, min, max) { return (val - min) / (max - min); };
+
+var config = {
+    jitter_strength: 0.5,
+    alignment_strength: 0.1,
+    separation_strength: 0.01,
+    cohesion_strength: 0.001,
+    focus_strength: 0.001,
+    boid_length: 18,
+    boid_width: 6,
+    shape: "triangle",
+    minSpeed: 2,
+    maxSpeed: 4,
+}
 
 
 class Boid {
@@ -33,9 +42,6 @@ class Boid {
         this.id = id;                                               // Unique ID
         this.pos = {x: x, y: y};                                    // Positional information
         this.vel = {x: Math.random() - 1, y: Math.random() - 1};    // Velocity x y components
-        this.length = 18;                                           // Length, used to compute size and sight info
-        this.width = this.length / 3;                               // Only used in non-symmetric shapes
-        this.fov = this.length * 3;                                 // How far the Boid can see
         this.cluster = 0;                                           // Which cluster the Boid belongs to
         this.minSpeed = 2;                                          // Slowest the Boid can go
         this.maxSpeed = 4;                                          // Fastest the Boid can go
@@ -47,49 +53,28 @@ class Boid {
         this.color = [250, 250, 250];                               // Initial color is white
     }
 
-    render(ctx, shapeType = "triangle", showShadow = true, showText = false) {
-        this.renderShape(ctx, shapeType);
-        
-        if (showShadow) {
-            // Cast a shadow
-            ctx.shadowOffsetX = this.length / 5;
-            ctx.shadowOffsetY = this.length / 5;
-            ctx.shadowBlur = 5 / this.transparency;
-            ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-        }
-
-        // Render the boid
-        ctx.fill();
-
-        if (showText) {
-            this.renderText(ctx, shapeType);
-        }
-
-        // Resets the canvas' transform
-        ctx.resetTransform();
-    }
-
-    renderShape(ctx, shapeType) {
-        switch (shapeType) {
+    render(ctx) {
+        switch (config.shape) {
             case "circle":
                 // Outer circle
                 ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, this.width, 0, TWOPI, true);
-                //ctx.fillStyle = "rgba(" + this.color + ", 1)"; // Set the fill color
-                ctx.fillStyle = "rgba(0, 0, 0, 1)"; // Set the fill color
+                ctx.arc(this.pos.x, this.pos.y, config.boid_width, 0, TWOPI, true);
+                ctx.fillStyle = "rgba(" + this.color + ", 1)"; // Set the fill color
+                //ctx.fillStyle = "rgba(0, 0, 0, 1)"; // Set the fill color
+                ctx.stroke();
                 ctx.fill();
                 break;
             case "eye":
                 // Outer circle
                 ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, this.width, 0, TWOPI, true);
+                ctx.arc(this.pos.x, this.pos.y, config.boid_width, 0, TWOPI, true);
                 ctx.stroke(); // Draw the black outline
                 ctx.fillStyle = "rgba(" + this.color + ", " + this.transparency + ")"; // Set the fill color
                 ctx.fill();
 
                 // Inner circle
                 ctx.beginPath();
-                ctx.arc(this.vel.x*1.5 + this.pos.x, this.vel.y*1.5 + this.pos.y, this.width / 2, 0, TWOPI, true);
+                ctx.arc(this.vel.x*1.5 + this.pos.x, this.vel.y*1.5 + this.pos.y, config.boid_width / 2, 0, TWOPI, true);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
                 ctx.stroke();
                 ctx.fill(); // Draw the black outline
@@ -104,35 +89,20 @@ class Boid {
                 ctx.rotate(this.angle);
                 ctx.translate(-this.pos.x, -this.pos.y);
 
+
                 // Begin drawing the Boid (shape + outline)
                 ctx.beginPath();
                 ctx.moveTo(this.pos.x, this.pos.y);
-                ctx.lineTo(this.pos.x - this.length, this.pos.y - this.width);
-                ctx.lineTo(this.pos.x - this.length, this.pos.y + this.width);
+                ctx.lineTo(this.pos.x - config.boid_length, this.pos.y - config.boid_width);
+                ctx.lineTo(this.pos.x - config.boid_length, this.pos.y + config.boid_width);
                 ctx.lineTo(this.pos.x, this.pos.y);
                 ctx.stroke(); // Draw the black outline
                 ctx.fillStyle = "rgba(" + this.color + ", " + this.transparency + ")"; // Set the fill color
+                ctx.fill();
         }
-    }
 
-    renderText(ctx, shapeType) {
-        // Display the Boid's ID
-        //ctx.font = (this.length / 4) + "px mono";
-        ctx.font = (this.length / 4) + "px mono";
-        ctx.translate(this.pos.x, this.pos.y);
-        ctx.rotate(1.57079); // Rotate 90 degrees
-        ctx.translate(-this.pos.x, -this.pos.y);
-        ctx.fillStyle = "rgba(0, 0, 0, 1)";
-        ctx.textAlign = "center";
-        ctx.fillText(this.id, this.pos.x, this.pos.y + this.length - this.width / 2);
-        /*
-        */
-        //let pos = "(" + [Math.round(this.pos.x), Math.round(this.pos.y)] + ")";
-        //ctx.fillText(pos, this.pos.x, this.pos.y + this.length);
-
-        //let vel = "(" + [Math.round(this.vel.x), Math.round(this.vel.y)] + ")";
-        //ctx.fillText(vel, this.pos.x, this.pos.y + this.length);
-
+        // Resets the canvas' transform
+        ctx.resetTransform();
     }
 
     update(env) {
@@ -155,12 +125,12 @@ class Boid {
 
     tooClose(other) {
         // "Too close" is within a measure of one Boid's length
-        return distance(this.pos, other.pos) < this.length;
+        return distance(this.pos, other.pos) < config.boid_length;
     }
 
     inSight(other) {
         // "In sight" is within the Boid's FOV
-        return distance(this.pos, other.pos) < this.fov;
+        return distance(this.pos, other.pos) < config.boid_length * 3;;
     }
 
     limitSpeed() {
@@ -168,16 +138,16 @@ class Boid {
         let speed = Math.sqrt(this.vel.x**2 + this.vel.y**2);
 
         // Clamp the speed between min and max
-        if (speed > this.maxSpeed) {
-            this.vel = mult(div(this.vel, speed), this.minSpeed);
-        } else if (speed < this.minSpeed) {
-            this.vel = mult(div(this.vel, speed), this.maxSpeed);
+        if (speed > config.maxSpeed) {
+            this.vel = mult(div(this.vel, speed), config.minSpeed);
+        } else if (speed < config.minSpeed) {
+            this.vel = mult(div(this.vel, speed), config.maxSpeed);
         }
     }
 
     avoidWalls() {
         // Avoid walls that are twice the Boid's length away
-        let margin = this.length * 2;
+        let margin = config.boid_length * 2;
 
         // If the position is too close to the margin, steer away
         if (this.pos.x < margin) {
@@ -291,11 +261,11 @@ class Environment {
         */
 
         // Add all of the factors together
-        vel = add(vel, mult(separation, SEPARATION_STRENGTH));
-        vel = add(vel, mult(cohesion, COHESION_STRENGTH));
-        vel = add(vel, mult(alignment, ALIGNMENT_STRENGTH));
-        vel = add(vel, mult(focus, FOCUS_STRENGTH));
-        vel = add(vel, mult(jitter, JITTER_STRENGTH));
+        vel = add(vel, mult(separation, config.separation_strength));
+        vel = add(vel, mult(cohesion, config.cohesion_strength));
+        vel = add(vel, mult(alignment, config.alignment_strength));
+        vel = add(vel, mult(focus, config.focus_strength));
+        vel = add(vel, mult(jitter, config.jitter_strength));
 
         return vel;
     }
@@ -303,10 +273,14 @@ class Environment {
 
 function resizeCanvas() {
     env.canvas = document.getElementById("cnvs");
+    let sidebar = window.getComputedStyle(document.getElementById("sidemenu"));
     
     // Set the dimensions of the window
-    env.width = env.canvas.width = window.innerWidth - 25;
-    env.height = env.canvas.height = window.innerHeight - 30;
+    let new_width = window.innerWidth - parseInt(sidebar.width) - 25;
+    let new_height = window.innerHeight - 45;
+
+    env.width = env.canvas.width = new_width;
+    env.height = env.canvas.height = new_height;
 }
 
 function distance(a, b) {
@@ -359,7 +333,7 @@ function main(env) {
     env.ctx = env.canvas.getContext("2d");
 
     // Create a Density-Based Scanner for clustering
-    let dbscanner = jDBSCAN().eps(env.boids[0].length * 2).minPts(1);
+    let dbscanner = jDBSCAN().eps(config.boid_length * 2).minPts(1);
 
     let cycle = function() {
         // Clear the screen
@@ -386,9 +360,6 @@ function main(env) {
 
             // Update position and render
             boid.update(env);
-            //boid.render(env.ctx, shapeType="triangle", showShadow=true, showText=true);
-            //boid.render(env.ctx, shapeType="eye", showShadow=false, showText=false);
-            //boid.render(env.ctx, shapeType="circle", showShadow=false, showText=false);
             boid.render(env.ctx);
         }
         env.animationFrame = window.requestAnimationFrame(cycle);
@@ -411,12 +382,79 @@ function main(env) {
 
     env.canvas.addEventListener("mousemove", function(e) {
         // Set the focal point to the mouse's position
-        env.focalPoint = { x: e.x, y: e.y};
+        //env.focalPoint = { x: e.offsetX, y: e.offsetY};
     });
 
     env.canvas.addEventListener("mousedown", function(e) {
-        env.spawnBoid(e.x, e.y);
+        // OffsetX/Y is the point on the canvas clicked. X/Y is the actual screen coordinates
+        env.spawnBoid(e.offsetX, e.offsetY);
     });
+
+    
+    let sepSlider = document.getElementById("sepSlider");
+    let cohSlider = document.getElementById("cohSlider");
+    let aliSlider = document.getElementById("aliSlider");
+    let sizeSlider = document.getElementById("sizeSlider");
+    let speedSlider = document.getElementById("speedSlider");
+
+    sepSlider.oninput = function() {
+        config.separation_strength = +this.value;
+        console.log("Separation: " + config.separation_strength);
+    }
+
+    cohSlider.oninput = function() {
+        config.cohesion_strength = +this.value;
+        console.log("Cohesion: " + config.cohesion_strength);
+    }
+
+    aliSlider.oninput = function() {
+        config.alignment_strength = +this.value;
+        console.log("Alignment: " + config.alignment_strength);
+    }
+
+    sizeSlider.oninput = function() {
+        config.boid_length = +this.value;
+        config.boid_width = this.value / 3;
+        dbscanner = jDBSCAN().eps(config.boid_length * 2).minPts(1);
+    }
+
+    speedSlider.oninput = function() {
+        config.minSpeed = this.value >> 1;
+        config.maxSpeed = +this.value;
+    }
+
+    document.getElementById("shadowCheck").oninput = function() {
+        if (this.checked) {
+            // Cast a shadow
+            env.ctx.shadowOffsetX = config.boid_length / 5;
+            env.ctx.shadowOffsetY = config.boid_length / 5;
+            env.ctx.shadowBlur = 10;
+            env.ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        } else {
+            env.ctx.shadowOffsetX = null;
+            env.ctx.shadowOffsetY = null;
+            env.ctx.shadowBlur = null;
+            env.ctx.shadowColor = null;
+        }
+    }
+
+    document.getElementById("shapeSelect").oninput = function() {
+        config.shape = this.value;
+    }
+
+    document.getElementById("resetButton").onclick = function() {
+        aliSlider.value = config.alignment_strength = 0.1;
+        sepSlider.value = config.separation_strength = 0.01;
+        cohSlider.value = config.cohesion_strength = 0.001;
+
+        config.boid_width = 6;
+        sizeSlider.value = config.boid_length = 18;
+
+        config.minSpeed = 2;
+        speedSlider.value = config.maxSpeed = 4;
+
+        dbscanner = jDBSCAN().eps(config.boid_length * 2).minPts(1);
+    }
 }
 
 // Global environment variable to hold configuration info
