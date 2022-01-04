@@ -93,6 +93,8 @@ I have not yet implemented this improvement in the code.
 
 This is written in vanilla JS and HTML, so you can clone this repository and open up the `index.html` file in your browser of choice.
 
+Alternatively, you can view [this webpage](https://hammerapi.github.io/BoidsJS/) where I've hosted this repository using GitHub Pages.
+
 ---
 
 ## Future Ideas
