@@ -10,6 +10,7 @@ type Boid = {
     color: Array<number>,
     minSpeed: number,
     maxSpeed: number,
+    cluster: number,
 };
 type Position = { x: number, y: number};
 type Velocity = { dx: number, dy: number};
@@ -22,35 +23,18 @@ const mod = function(num: number, modulus: number) { return ((num % modulus) + m
 function simulate(canvas: any, ctx: CanvasRenderingContext2D) {
     console.log("Begin simulation")
     let animationFrame: any = null;
-    let clusters = null;
-    let cycleNum = 0;
+    let clusters;
     let boids = generateBoids(INITIAL_NUM);
-
-    // Create a Density-Based Scanner for clustering
-    //let dbscanner = jDBSCAN().eps(env.defaultLength * 2).minPts(1);
 
     let cycle = () => {
         //console.log("CYCLE " + cycleNum);
         // Clear the screen
         ctx.clearRect(0, 0, windowWidth, windowHeight);
 
-        // Assign every boid a cluster ID (clusterMap[boid.id] = clusterId)
-        //let clusterMap = dbscanner.data(env.positions)();
-        //clusterMap.forEach(function(clusterId, boidId) { env.boids[boidId].cluster = clusterId });
-
         // Reset the clusters; It's a new iteration, so boids may change clusters
-        clusters = [];
-
+        clusters = dbscan(boids, fovDist, 1, boidDist);
+                
         for (let boid of boids) {
-            // Create clusters
-            /*
-            if (clusters[boid.cluster] == null) {
-                clusters[boid.cluster] = [];
-            }
-            */
-            // Add boids to their respective clusters
-            //clusters[boid.cluster].push(boid)
-
             // Calculate the new velocity of the boid
             let newVel = calculateBoidVelocity(boid, boids);
             boid.dx += newVel.dx;
@@ -59,6 +43,7 @@ function simulate(canvas: any, ctx: CanvasRenderingContext2D) {
             // Update position and render
             updateBoid(boid);
             render(ctx, boid);
+            boid.cluster = 0;
         }
         animationFrame = window.requestAnimationFrame(cycle);
     }
@@ -100,10 +85,11 @@ function generateBoids(num: number): Array<Boid> {
             length: defaultLength,
             width: defaultWidth,
             angle: 0,
-            color: [RGB(), RGB(), RGB()],
-            //color: COLORS[i],
+            //color: [RGB(), RGB(), RGB()],
+            color: [250, 250, 250],
             minSpeed: defaultMinSpeed,
             maxSpeed: defaultMaxSpeed,
+            cluster: 0,
         });
     }
 
@@ -204,15 +190,12 @@ function updateBoid(boid: Boid): void {
     avoidWalls(boid);
 
     // Update the Boid's color based on its cluster. Unclustered boids are white
-    //boid.color = boid.cluster > 0 ? COLORS[boid.cluster - 1] : [250, 250, 250];
+    boid.color = boid.cluster > 0 ? COLORS[boid.cluster - 1] : [250, 250, 250];
 
     // Update position from velocity
     // % can return negative numbers by default, so account for that
     boid.x = mod(boid.x + boid.dx, windowWidth);
     boid.y = mod(boid.y + boid.dy, windowHeight);
-
-    // Track the Boid's position in the environment
-    //positions[this.id] = this.pos;
 
     // Determine the Boid's angle based on its velocity
     boid.angle = Math.atan2(boid.dy, boid.dx);
@@ -238,18 +221,19 @@ function limitSpeed(boid: Boid): void {
 }
 
 function avoidWalls(boid: Boid) {
-    // Avoid walls that are twice the Boid's length away
-    let margin = defaultLength * 2;
-
     // If the position is too close to the margin, steer away
-    if (boid.x < margin) {
-        boid.dx += steerStr;
-    } else if (boid.x > windowWidth - margin) {
-        boid.dx -= steerStr;
+    if (boid.x < fovDist) {
+        //boid.dy += steerStr; // Steer the boid
+        boid.dx += steerStr; // Slow the boid
+    } else if (boid.x > windowWidth - fovDist) {
+        //boid.dy -= steerStr; // Steer
+        boid.dx -= steerStr; // Slow
     }
-    if (boid.y < margin) {
-        boid.dx += steerStr;
-    } else if (boid.y > windowHeight - margin) {
-        boid.dy -= steerStr;
+    if (boid.y < fovDist) {
+        //boid.dx -= steerStr; // Steer
+        boid.dy += steerStr; // Slow
+    } else if (boid.y > windowHeight - fovDist) {
+        //boid.dx += steerStr; // Steer
+        boid.dy -= steerStr; // Slow
     }
 }

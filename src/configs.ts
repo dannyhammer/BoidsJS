@@ -28,7 +28,7 @@ var defaultLength = 18;
 var defaultWidth = defaultLength / 3;
 var defaultMinSpeed = 2;
 var defaultMaxSpeed = 4;
-var steerStr = 0.5;
+var steerStr = 0.5; // Boids do a clockwise motion around the room
 var personalSpace = defaultLength;
 var fovDist = defaultLength * 3;
 
