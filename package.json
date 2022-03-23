@@ -1,0 +1,20 @@
+{
+  "name": "boids",
+  "version": "1.0.0",
+  "description": "Exploration into the Boids algorithm",
+  "main": "index.js",
+  "scripts": {
+    "compile": "rm -rf public/dist/* && tsc -p tsconfig.json && tree public",
+    "clean": "rm -r public/dist/* && tree"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HammerAPI/BoidsJS.git"
+  },
+  "author": "Danny Hammer",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HammerAPI/BoidsJS/issues"
+  },
+  "homepage": "https://github.com/HammerAPI/BoidsJS#readme"
+}
