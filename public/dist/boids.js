@@ -1,7 +1,26 @@
 "use strict";
-const RGB = function () { return Math.floor(Math.random() * 256); };
+const RGB = () => {
+    const num = Math.round(0xffffff * Math.random());
+    return [num >> 16, num >> 8 & 255, num & 255];
+};
+//const RGB = function () { return Math.floor(Math.random() * 256); };
 const randInt = function (min, max) { return Math.round(Math.random() * (max - min)) + min; };
 const mod = function (num, modulus) { return ((num % modulus) + modulus) % modulus; };
+// Normalizes a value to between 0 and 1
+const normalize = (min, max, value) => { return (value - min) / (max - min); };
+const triangle = (ctx, x1, y1, x2, y2, x3, y3) => {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+};
+const circle = (ctx, x, y, radius) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2, true);
+    ctx.stroke();
+};
 function simulate(canvas, ctx) {
     console.log("Begin simulation");
     let animationFrame = null;
@@ -107,8 +126,8 @@ function generateBoids(num) {
             length: defaultLength,
             width: defaultWidth,
             angle: 0,
-            //color: [RGB(), RGB(), RGB()],
-            color: [250, 250, 250],
+            //color: RGB(),
+            color: DEFAULT_COLOR,
             minSpeed: defaultMinSpeed,
             maxSpeed: defaultMaxSpeed,
             cluster: UNDEFINED,
@@ -163,35 +182,31 @@ function calculateBoidVelocity(boid, boids) {
         //focus = sub(boid.pos, this.focalPoint); // Repel boids
     }
     // Add all of the factors together
-    newVel.dx += (separation.dx * separationStr)
-        + (cohesion.dx * cohesionStr)
-        + (alignment.dx * alignmentStr);
-    newVel.dy += (separation.dy * separationStr)
-        + (cohesion.dy * cohesionStr)
-        + (alignment.dy * alignmentStr);
+    /*
+    newVel.dx +=  (separation.dx * separationStr)
+                + (cohesion.dx   * cohesionStr)
+                + (alignment.dx  * alignmentStr);
+
+    newVel.dy +=  (separation.dy * separationStr)
+                + (cohesion.dy   * cohesionStr)
+                + (alignment.dy  * alignmentStr);
+    */
+    // Add all of the factors together
+    newVel.dx += (separation.dx * behaviorRules.separation)
+        + (cohesion.dx * behaviorRules.cohesion)
+        + (alignment.dx * behaviorRules.alignment);
+    newVel.dy += (separation.dy * behaviorRules.separation)
+        + (cohesion.dy * behaviorRules.cohesion)
+        + (alignment.dy * behaviorRules.alignment);
     return newVel;
 }
-function render(ctx, boid) {
-    // Align the canvas with the Boid
-    ctx.translate(boid.x, boid.y);
-    ctx.rotate(boid.angle);
-    ctx.translate(-boid.x, -boid.y);
-    // Begin drawing the Boid (shape + outline)
-    ctx.beginPath();
-    ctx.moveTo(boid.x, boid.y);
-    ctx.lineTo(boid.x - boid.length, boid.y + boid.width);
-    ctx.lineTo(boid.x - boid.length, boid.y - boid.width);
-    ctx.lineTo(boid.x, boid.y);
-    ctx.stroke(); // Draw the black outline
-    ctx.fillStyle = "rgba(" + boid.color + ", " + 0.75 + ")"; // Set the fill color
-    ctx.fill();
-    ctx.resetTransform();
+function boidDist(boid, other) {
+    return Math.sqrt((boid.x - other.x) ** 2 + (boid.y - other.y) ** 2);
 }
 function updateBoid(boid) {
     limitSpeed(boid);
     avoidWalls(boid);
-    // Update the Boid's color based on its cluster. Unclustered boids are white
-    boid.color = boid.cluster > 0 ? COLORS[boid.cluster - 1] : [250, 250, 250];
+    recolor(boid);
     // Update position from velocity
     // % can return negative numbers by default, so account for that
     boid.x = mod(boid.x + boid.dx, windowWidth);
@@ -199,8 +214,17 @@ function updateBoid(boid) {
     // Determine the Boid's angle based on its velocity
     boid.angle = Math.atan2(boid.dy, boid.dx);
 }
-function boidDist(boid, other) {
-    return Math.sqrt((boid.x - other.x) ** 2 + (boid.y - other.y) ** 2);
+function recolor(boid) {
+    limitSpeed(boid);
+    avoidWalls(boid);
+    //boid.color = boid.cluster > 0 ? COLORS[boid.cluster - 1] : [250, 250, 250];
+    boid.color = DEFAULT_COLOR;
+    if (boid.cluster > 0) {
+        if (colors[boid.cluster] == null) {
+            colors[boid.cluster] = RGB();
+        }
+        boid.color = colors[boid.cluster];
+    }
 }
 function limitSpeed(boid) {
     // Fetch the speed of the boid (magnitude of the velocity vector)
@@ -233,4 +257,16 @@ function avoidWalls(boid) {
         //boid.dx += steerStr; // Steer
         boid.dy -= steerStr; // Slow
     }
+}
+function render(ctx, boid) {
+    // Align the canvas with the Boid's angle
+    ctx.translate(boid.x, boid.y);
+    ctx.rotate(boid.angle);
+    ctx.translate(-boid.x, -boid.y);
+    triangle(ctx, boid.x, boid.y, boid.x - boid.length, boid.y + boid.width, boid.x - boid.length, boid.y - boid.width);
+    //circle(ctx, boid.x, boid.y, boid.width);
+    // Begin drawing the Boid (shape + outline)
+    ctx.fillStyle = "rgba(" + boid.color + ", " + 0.75 + ")"; // Set the fill color
+    ctx.fill();
+    ctx.resetTransform();
 }

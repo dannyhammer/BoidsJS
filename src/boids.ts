@@ -15,9 +15,28 @@ type Boid = {
 type Position = { x: number, y: number};
 type Velocity = { dx: number, dy: number};
 
-const RGB = function () { return Math.floor(Math.random() * 256); };
+const RGB = () => {
+    const num = Math.round(0xffffff * Math.random());
+    return [num >> 16, num >> 8 & 255, num & 255];
+};
+//const RGB = function () { return Math.floor(Math.random() * 256); };
 const randInt = function(min: number, max: number) { return Math.round(Math.random() * (max - min)) + min; };
 const mod = function(num: number, modulus: number) { return ((num % modulus) + modulus) % modulus; };
+// Normalizes a value to between 0 and 1
+const normalize = (min: number, max: number, value: number) => { return (value - min) / (max - min)}
+const triangle = (ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+}
+const circle = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2, true)
+    ctx.stroke();
+}
 
 
 function simulate(canvas: any, ctx: CanvasRenderingContext2D) {
@@ -151,8 +170,8 @@ function generateBoids(num: number): Array<Boid> {
             length: defaultLength,
             width: defaultWidth,
             angle: 0,
-            //color: [RGB(), RGB(), RGB()],
-            color: [250, 250, 250],
+            //color: RGB(),
+            color: DEFAULT_COLOR,
             minSpeed: defaultMinSpeed,
             maxSpeed: defaultMaxSpeed,
             cluster: UNDEFINED,
@@ -220,6 +239,7 @@ function calculateBoidVelocity(boid: Boid, boids: Array<Boid>): Velocity {
     }
 
     // Add all of the factors together
+    /*
     newVel.dx +=  (separation.dx * separationStr)
                 + (cohesion.dx   * cohesionStr)
                 + (alignment.dx  * alignmentStr);
@@ -227,36 +247,28 @@ function calculateBoidVelocity(boid: Boid, boids: Array<Boid>): Velocity {
     newVel.dy +=  (separation.dy * separationStr)
                 + (cohesion.dy   * cohesionStr)
                 + (alignment.dy  * alignmentStr);
-            
+    */
+
+    // Add all of the factors together
+    newVel.dx +=  (separation.dx * behaviorRules.separation)
+                + (cohesion.dx   * behaviorRules.cohesion)
+                + (alignment.dx  * behaviorRules.alignment);
+
+    newVel.dy +=  (separation.dy * behaviorRules.separation)
+                + (cohesion.dy   * behaviorRules.cohesion)
+                + (alignment.dy  * behaviorRules.alignment);
     return newVel;
 }
 
-function render(ctx: CanvasRenderingContext2D, boid: Boid): void {
-    // Align the canvas with the Boid
-    ctx.translate(boid.x, boid.y);
-    ctx.rotate(boid.angle);
-    ctx.translate(-boid.x, -boid.y);
-
-
-    // Begin drawing the Boid (shape + outline)
-    ctx.beginPath();
-    ctx.moveTo(boid.x, boid.y);
-    ctx.lineTo(boid.x - boid.length, boid.y + boid.width);
-    ctx.lineTo(boid.x - boid.length, boid.y - boid.width);
-    ctx.lineTo(boid.x, boid.y);
-    ctx.stroke(); // Draw the black outline
-    ctx.fillStyle = "rgba(" + boid.color + ", " + 0.75 + ")"; // Set the fill color
-    ctx.fill();
-    
-    ctx.resetTransform();
+function boidDist(boid: Boid, other: Boid): number {
+    return Math.sqrt((boid.x - other.x)**2 + (boid.y - other.y)**2);
 }
+
 
 function updateBoid(boid: Boid): void {
     limitSpeed(boid);
     avoidWalls(boid);
-
-    // Update the Boid's color based on its cluster. Unclustered boids are white
-    boid.color = boid.cluster > 0 ? COLORS[boid.cluster - 1] : [250, 250, 250];
+    recolor(boid);
 
     // Update position from velocity
     // % can return negative numbers by default, so account for that
@@ -267,10 +279,22 @@ function updateBoid(boid: Boid): void {
     boid.angle = Math.atan2(boid.dy, boid.dx);
 }
 
+function recolor(boid: Boid): void {
+    limitSpeed(boid);
+    avoidWalls(boid);
+    //boid.color = boid.cluster > 0 ? COLORS[boid.cluster - 1] : [250, 250, 250];
+    boid.color = DEFAULT_COLOR;
+    if (boid.cluster > 0) {
+        if (colors[boid.cluster] == null) {
+            colors[boid.cluster] = RGB();
+        }
 
-function boidDist(boid: Boid, other: Boid): number {
-    return Math.sqrt((boid.x - other.x)**2 + (boid.y - other.y)**2);
+        boid.color = colors[boid.cluster];
+    }
 }
+
+
+
 
 function limitSpeed(boid: Boid): void {
     // Fetch the speed of the boid (magnitude of the velocity vector)
@@ -302,4 +326,21 @@ function avoidWalls(boid: Boid) {
         //boid.dx += steerStr; // Steer
         boid.dy -= steerStr; // Slow
     }
+}
+
+
+function render(ctx: CanvasRenderingContext2D, boid: Boid): void {
+    // Align the canvas with the Boid's angle
+    ctx.translate(boid.x, boid.y);
+    ctx.rotate(boid.angle);
+    ctx.translate(-boid.x, -boid.y);
+
+    triangle(ctx, boid.x, boid.y, boid.x - boid.length, boid.y + boid.width, boid.x - boid.length, boid.y - boid.width);
+    //circle(ctx, boid.x, boid.y, boid.width);
+
+    // Begin drawing the Boid (shape + outline)
+    ctx.fillStyle = "rgba(" + boid.color + ", " + 0.75 + ")"; // Set the fill color
+    ctx.fill();
+    
+    ctx.resetTransform();
 }

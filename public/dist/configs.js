@@ -4,7 +4,8 @@ const MAX_BOIDS = 500;
 const UNDEFINED = -1;
 const NOISE = 0;
 const MIN_CLUSTER_SIZE = 1;
-const COLORS = [
+const DEFAULT_COLOR = [250, 250, 250];
+var colors = [
     [255, 0, 0],
     [0, 255, 0],
     [0, 0, 255],
@@ -32,3 +33,8 @@ var personalSpace = defaultLength;
 var fovDist = defaultLength * 3;
 var windowWidth = 3960;
 var windowHeight = 2160;
+var behaviorRules = {
+    "separation": 1,
+    "cohesion": 1,
+    "alignment": 1,
+};
