@@ -1,11 +1,11 @@
 // https://the-algorithms.com/algorithm/dbscan
 
-function dbscan(data: Array<any>, epsilon: number, minPoints: number, dist: Function): Array<any> {
-    const NOISE = -1;
-    const UNDEFINED = 0;
+function dbscan(data: Array<any>, epsilon: number, minPoints: number, dist: Function): Array<Array<number>> {
+    const NOISE = 0;
+    const UNDEFINED = -1;
 
-    let clusters: Array<any> = [];
-    let clusterId = UNDEFINED;
+    let clusters: Array<Array<number>> = [[]];
+    let clusterId = NOISE > UNDEFINED ? NOISE : UNDEFINED;
 
     for (let point of data) {
         // If the point has already been assigned a cluster, move on
@@ -24,12 +24,15 @@ function dbscan(data: Array<any>, epsilon: number, minPoints: number, dist: Func
 
         // Update and assign the point to the cluster
         clusterId++;
-        clusters.push(clusterId);
+        //clusters.push(clusterId);
+        /*
+        if (clusters[clusterId] == null) {
+            clusters[clusterId] = [];
+        }
+        clusters[clusterId].push(point);
+        */
         point.cluster = clusterId;
-
-        // Clone the neighbors to create a seed set
-        //let seedSet: Array<any> = [];
-        //neighbors.forEach(point => seedSet.push(Object.assign({}, point)));
+        
 
         while (neighbors.length != 0) {
             let neighbor = neighbors.shift();

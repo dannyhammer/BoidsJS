@@ -3,7 +3,6 @@ function main() {
     let canvas = document.getElementById("cnvs");
     if (canvas != null) {
         let ctx = canvas.getContext("2d");
-        setupControls();
         simulate(canvas, ctx);
     }
 }
@@ -22,39 +21,59 @@ function resizeCanvas() {
         console.log("Canvas Dimensions: (" + windowWidth + ", " + windowHeight + ")");
     }
 }
+function initSlider(sliderId, min, max, value, configVar) {
+    let slider = document.getElementById(sliderId);
+    slider.min = "" + min;
+    //max = value * 2;
+    slider.max = "" + max;
+    slider.step = "" + (max - min) / 100;
+    slider.value = "" + value;
+    // Link the slider to the global config variable
+    slider.onclick = () => {
+        configVar = slider.valueAsNumber;
+        console.log(slider.name + ": " + slider.value);
+    };
+    return slider;
+}
+/*
+function initSlider (sliderId: string, name: string, min: number, max: number, value: number, configVar: number): HTMLInputElement {
+    let slider = document.getElementById(sliderId) as HTMLInputElement;
+    slider.min = "0";
+    slider.max = "1";
+    slider.step = "0.01";
+    slider.value = "0.5";
+
+    slider.onclick = () => {
+        configVar = slider.valueAsNumber;
+        console.log(name + ": " + slider.value);
+    }
+
+    return slider;
+}
+*/
+function resetConfig() {
+    let sepSlider = initSlider("sepSlider", 0, 0.05, 0.01, separationStr);
+    let cohSlider = initSlider("cohSlider", 0, 0.01, 0.001, cohesionStr);
+    let aliSlider = initSlider("aliSlider", 0, 0.5, 0.1, alignmentStr);
+    separationStr = sepSlider.valueAsNumber;
+    cohesionStr = cohSlider.valueAsNumber;
+    alignmentStr = aliSlider.valueAsNumber;
+    defaultWidth = 6;
+    defaultLength = 18;
+    defaultMinSpeed = 2;
+    defaultMaxSpeed = 4;
+    console.log("Config Reset:");
+    console.log("Separation: " + separationStr);
+    console.log("Cohesion: " + cohesionStr);
+    console.log("Alignment: " + alignmentStr);
+}
 function setupControls() {
-    let sepSlider = document.getElementById("sepSlider");
-    let cohSlider = document.getElementById("cohSlider");
-    let aliSlider = document.getElementById("aliSlider");
-    sepSlider.oninput = () => {
-        separationStr = +sepSlider.value;
-        console.log("Separation: " + separationStr);
-    };
-    cohSlider.oninput = () => {
-        cohesionStr = +cohSlider.value;
-        console.log("Cohesion: " + cohesionStr);
-    };
-    aliSlider.oninput = () => {
-        alignmentStr = +aliSlider.value;
-        console.log("Alignment: " + alignmentStr);
-    };
-    let resetButton = document.getElementById("resetButton");
-    resetButton.onclick = () => {
-        aliSlider.value = alignmentStr = 0.1;
-        sepSlider.value = separationStr = 0.01;
-        cohSlider.value = cohesionStr = 0.001;
-        defaultWidth = 6;
-        defaultLength = 18;
-        defaultMinSpeed = 2;
-        defaultMaxSpeed = 4;
-        //dbscanner = jDBSCAN().eps(env.defaultLength * 2).minPts(1);
-    };
-    separationStr = sepSlider.value;
-    cohesionStr = cohSlider.value;
-    alignmentStr = aliSlider.value;
+    document.getElementById("resetButton").onclick = resetConfig;
+    resetConfig();
 }
 window.onload = () => {
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
+    setupControls();
     main();
 };

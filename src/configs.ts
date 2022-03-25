@@ -1,8 +1,9 @@
 
-const INITIAL_NUM = 200;
-const MAX_BOIDS = 500;
-const TWOPI = 2 * Math.PI;
-const SHAPES = ["circle", "eye", "triangle"];
+const INITIAL_NUM: number = 200;
+const MAX_BOIDS: number = 500;
+const UNDEFINED: number = -1;
+const NOISE: number = 0;
+const MIN_CLUSTER_SIZE: number = 1;
 
 const COLORS = [
     [255, 0, 0],
@@ -31,6 +32,5 @@ var defaultMaxSpeed = 4;
 var steerStr = 0.5; // Boids do a clockwise motion around the room
 var personalSpace = defaultLength;
 var fovDist = defaultLength * 3;
-
 var windowWidth = 3960
 var windowHeight = 2160

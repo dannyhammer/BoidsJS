@@ -1,8 +1,9 @@
 "use strict";
 const INITIAL_NUM = 200;
 const MAX_BOIDS = 500;
-const TWOPI = 2 * Math.PI;
-const SHAPES = ["circle", "eye", "triangle"];
+const UNDEFINED = -1;
+const NOISE = 0;
+const MIN_CLUSTER_SIZE = 1;
 const COLORS = [
     [255, 0, 0],
     [0, 255, 0],

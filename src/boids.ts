@@ -23,28 +23,46 @@ const mod = function(num: number, modulus: number) { return ((num % modulus) + m
 function simulate(canvas: any, ctx: CanvasRenderingContext2D) {
     console.log("Begin simulation")
     let animationFrame: any = null;
-    let clusters;
     let boids = generateBoids(INITIAL_NUM);
+    let clusters = [boids];
+    let newClusters: Array<Array<Boid>> = [[]];
+    let clusterId = NOISE;
 
-    let cycle = () => {
-        //console.log("CYCLE " + cycleNum);
+    const cycle = () => {
+        //console.log("NEW CYCLE")
+        clusterId = NOISE; // Initial cluster is noise
+        newClusters = [[]];
+
         // Clear the screen
         ctx.clearRect(0, 0, windowWidth, windowHeight);
 
-        // Reset the clusters; It's a new iteration, so boids may change clusters
-        clusters = dbscan(boids, fovDist, 1, boidDist);
-                
-        for (let boid of boids) {
-            // Calculate the new velocity of the boid
-            let newVel = calculateBoidVelocity(boid, boids);
-            boid.dx += newVel.dx;
-            boid.dy += newVel.dy;
+        boids.forEach(boid => boid.cluster = UNDEFINED);
+        //console.log(boids[0])
+        
+        //for (let boid of boids) {
+        for (let cluster of clusters) {
+            for (let boid of cluster) {
+                //console.log(boid.id, boid.cluster)
+                clusterId = assignClusters(boid, boids, fovDist, MIN_CLUSTER_SIZE, clusterId);
 
-            // Update position and render
-            updateBoid(boid);
-            render(ctx, boid);
-            boid.cluster = 0;
+                // Calculate the new velocity of the boid
+                let newVel = calculateBoidVelocity(boid, boids);
+                boid.dx += newVel.dx;
+                boid.dy += newVel.dy;
+
+                // Update position and render
+                updateBoid(boid);
+                render(ctx, boid);
+
+                if (newClusters[boid.cluster] == null) {
+                    newClusters[boid.cluster] = [];
+                }
+
+                newClusters[boid.cluster].push(boid);
+            }
         }
+        clusters = newClusters;
+        
         animationFrame = window.requestAnimationFrame(cycle);
     }
 
@@ -71,6 +89,54 @@ function simulate(canvas: any, ctx: CanvasRenderingContext2D) {
         //spawnBoid(e.offsetX, e.offsetY);
     });
 }
+    
+
+function assignClusters(boid: Boid, boids: Array<Boid>, minDist: number, minPoints: number, clusterId: number): number {
+    // If the boid has already been assigned a cluster, move on
+    if (boid.cluster != UNDEFINED) {
+        return clusterId;
+    }
+
+    // Fetch all neighbors of the point
+    let neighbors = boids.filter(other => boidDist(boid, other) < minDist && boid != other);
+    
+
+    // If the point has fewer neighbors than the threshold, it is noise
+    if (neighbors.length < minPoints) {
+        boid.cluster = NOISE;
+        return clusterId;
+    }
+
+    // Update and assign the point to the cluster
+    clusterId++;
+    boid.cluster = clusterId;
+
+    // Now loop over the remaining neighbors to expand the cluster
+    while (neighbors.length != 0) {
+        let neighbor = neighbors.shift();
+        
+        // If the point has already been clustered, move on
+        if (neighbor.cluster == NOISE) {
+            neighbor.cluster = clusterId;
+        } 
+        if (neighbor.cluster != UNDEFINED) {
+            continue;
+        }
+        
+        // Otherwise, the neighbor is undefined and will join this cluster
+        neighbor.cluster = clusterId;
+
+        // Fetch all of this point's neighbors
+        let seedNeighbors = boids.filter(other => boidDist(neighbor, other) < minDist);
+        
+        // If this point has a significant number of neighhbors,
+        // add its neighbors to the list to process
+        if (seedNeighbors.length > minPoints) {
+            neighbors = neighbors.concat(seedNeighbors);
+        }
+    }
+    return clusterId;
+}
 
 function generateBoids(num: number): Array<Boid> {
     let boids = [];
@@ -89,7 +155,7 @@ function generateBoids(num: number): Array<Boid> {
             color: [250, 250, 250],
             minSpeed: defaultMinSpeed,
             maxSpeed: defaultMaxSpeed,
-            cluster: 0,
+            cluster: UNDEFINED,
         });
     }
 
