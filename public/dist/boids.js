@@ -35,7 +35,6 @@ function simulate(canvas, ctx) {
         // Clear the screen
         ctx.clearRect(0, 0, windowWidth, windowHeight);
         boids.forEach(boid => boid.cluster = UNDEFINED);
-        //console.log(boids[0])
         //for (let boid of boids) {
         for (let cluster of clusters) {
             for (let boid of cluster) {

@@ -27,78 +27,58 @@ function resizeCanvas() {
 }
     
 
-function initSlider (sliderId: string, min: number, max: number, value: number, configVar: number): HTMLInputElement {
+function initSlider (sliderId: string, min: number, max: number, value: number): HTMLInputElement {
     let slider = document.getElementById(sliderId) as HTMLInputElement;
     slider.min = "" + min;
-    //max = value * 2;
     slider.max = "" + max;
-    slider.step = "" + (max - min) / 100;
+    //slider.step = "" + (max - min) / 100;
+    //slider.step = "any";
     slider.value = "" + value;
-
-    // Link the slider to the global config variable
-    slider.onclick = () => {
-        configVar = slider.valueAsNumber;
-        console.log(slider.name + ": " + configVar);
-    }
 
     return slider;
 }
 
 
 
-function defaultSlider (sliderId: string, valueField: string, min: number, max: number, value: number, configVar: string): HTMLInputElement {
+function defaultSlider (sliderId: string, valueField: string, min: number, mid: number, max: number, configVar: string): HTMLInputElement {
     let slider = document.getElementById(sliderId) as HTMLInputElement;
     slider.min = "0";
     slider.max = "1";
-    slider.step = "0.01";
+    slider.step = "any";
     slider.value = "0.5";
 
-    slider.onclick = () => {
-        behaviorRules[configVar] = scale(min, max, value, slider.valueAsNumber);
-        document.getElementById(valueField).innerHTML = "" + parseFloat(behaviorRules[configVar].toFixed(3));
+    // Same functionality whether you click or input
+    slider.oninput = slider.onclick = () => {
+        let newValue = scale(min, mid, max, slider.valueAsNumber); 
+        document.getElementById(valueField).innerHTML = "" + parseFloat(newValue.toFixed(9));
+        behaviorRules[configVar] = newValue;
+        //document.getElementById(valueField).innerHTML = "" + behaviorRules[configVar];
         //document.getElementById(valueField).innerHTML = "" + slider.valueAsNumber * 100 + "%"
     }
-    
+
+    // Initial click of the slider
     slider.click();
 
     return slider;
 }
 
 
-function scale(min: number, max: number, mid: number, value: number): number {
-    let scaled;
-/*
-    if (0 <= value && value <= 0.5) {
-        scaled = (mid - min) * value;
 
-    } else if (value <= 1.0) {
-        scaled = (max - mid) * value;
-
-    } else {
-        console.log("OUT OF RANGE")
-        scaled = 0;
-    }
-    */
-    scaled = (max + mid) * value**2 - mid * value;
-    
-    return scaled;
+function scale(min: number, mid: number, max: number, value: number): number {
+    return (max + mid) * value**2 + (-mid) * value + min;
 }
 
 
-function resetConfig() {
+function resetConfig(): void {
     /*
-    let sepSlider = initSlider("sepSlider", 0, 0.05, 0.01, separationStr);
-    let cohSlider = initSlider("cohSlider", 0, 0.01, 0.001, cohesionStr);
-    let aliSlider = initSlider("aliSlider", 0, 0.5, 0.1, alignmentStr);
+    let sepSlider = initSlider("sepSlider", 0, 0.05, 0.01);
+    let cohSlider = initSlider("cohSlider", 0, 0.01, 0.001);
+    let aliSlider = initSlider("aliSlider", 0, 0.5, 0.1);
     */
     
-    let sepSlider = defaultSlider("sepSlider", "sepValue", 0, 0.05, 0.01, "separation");
-    let cohSlider = defaultSlider("cohSlider", "cohValue", 0, 0.005, 0.001, "cohesion");
-    let aliSlider = defaultSlider("aliSlider", "aliValue", 0, 0.5, 0.1, "alignment");
-
-    //separationStr = sepSlider.valueAsNumber;
-    //cohesionStr = cohSlider.valueAsNumber;
-    //alignmentStr = aliSlider.valueAsNumber;
+    let sepSlider = defaultSlider("sepSlider", "sepValue", 0, 0.01, 0.05, "separation");
+    let cohSlider = defaultSlider("cohSlider", "cohValue", 0, 0.001, 0.005, "cohesion");
+    let aliSlider = defaultSlider("aliSlider", "aliValue", 0, 0.1, 0.5, "alignment");
 
 
     defaultWidth = 6;
@@ -107,16 +87,10 @@ function resetConfig() {
     defaultMinSpeed = 2;
     defaultMaxSpeed = 4;
 
-
-    /*
     console.log("Config Reset:");
-    console.log("Separation: " + separationStr);
-    console.log("Cohesion: " + cohesionStr);
-    console.log("Alignment: " + alignmentStr);
-    */
-
-    console.log("Config Reset:");
-    console.log(behaviorRules);
+    for (let key in behaviorRules) {
+        console.log("\t" + key + ":", parseFloat(behaviorRules[key].toFixed(6)))
+    }
 }
 
 
