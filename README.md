@@ -46,6 +46,7 @@ for each boid B:
 Where `ruleN()` can be any function that returns a velocity vector.
 
 Since rules are easy to add, I've experimented and added two more:
+
 4. **Focus** - Each Boid steers towards a focal point in the world.
 5. **Jitter** - Each Boid occasionally changes direction a small amount.
 
@@ -93,7 +94,7 @@ I have not yet implemented this improvement in the code.
 
 This is written in vanilla JS and HTML, so you can clone this repository and open up the `index.html` file in your browser of choice.
 
-Alternatively, you can view [this webpage](https://hammerapi.github.io/BoidsJS/) where I've hosted this repository using GitHub Pages.
+Alternatively, you can view [this webpage](https://dannyhammer.github.io/BoidsJS/) where I've hosted this repository using GitHub Pages.
 
 ---
 
